@@ -7,6 +7,8 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = {}) => {
     const router = useRouter()
     const params = useParams()
 
+    // useSWRの第１引数はキャッシュキーで既にそのキャッシュキーのデータがあれば、第２引数のfetcherは呼ばれずにキャッシュデータを返す
+    // mutate('/api/user')、useSWR（）を使用するとキャッシューキーのキャッシュデータを探す
     const { data: user, error, mutate } = useSWR('/api/user', () =>
         axios
             .get('/api/user')
@@ -62,7 +64,6 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = {}) => {
             .then(response => setStatus(response.data.status))
             .catch(error => {
                 if (error.response.status !== 422) throw error
-
                 setErrors(error.response.data.errors)
             })
     }
@@ -103,9 +104,6 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = {}) => {
         if (middleware === 'guest' && redirectIfAuthenticated && user)
             router.push(redirectIfAuthenticated)
 
-        if (middleware === 'auth' && (user && !user.email_verified_at))
-            router.push('/verify-email')
-        
         if (
             window.location.pathname === '/verify-email' &&
             user?.email_verified_at
@@ -114,6 +112,7 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = {}) => {
         if (middleware === 'auth' && error) logout()
     }, [user, error])
 
+    // returnで各メソッドを実行しているのではなく、外のコンポーネントから使用できるように公開している
     return {
         user,
         register,
