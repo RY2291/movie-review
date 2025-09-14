@@ -9,6 +9,7 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = {}) => {
 
     // useSWRの第１引数はキャッシュキーで既にそのキャッシュキーのデータがあれば、第２引数のfetcherは呼ばれずにキャッシュデータを返す
     // mutate('/api/user')、useSWR（）を使用するとキャッシューキーのキャッシュデータを探す
+    // 他のコンポーネントからuseAuthが呼ばれると実行される
     const { data: user, error, mutate } = useSWR('/api/user', () =>
         axios
             .get('/api/user')
