@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Exceptions\TmdbApiException;
+use App\Models\Movie;
 
 class TmdbService
 {
@@ -50,7 +51,32 @@ class TmdbService
       'query' => $keyword,
       'include_adult' => false,
     ];
+
+    $movies = Movie::searchByKeyword($keyword);
+
+    if ($movies->isNotEmpty()) {
+      return $this->formatMovieList($movies->toArray());
+    }
+
     $json = $this->request('/search/movie', $params);
+
+    $records = collect($json['results'] ?? [])
+      ->map(function ($item) {
+        return [
+          'api_id'      => $item['id'], // TMDB の ID を api_id カラムに
+          'title'       => $item['title'],
+          'poster_url'  => $item['poster_path']
+            ? "https://image.tmdb.org/t/p/w500{$item['poster_path']}"
+            : null,
+          'description' => $item['overview'] ?? null,
+          'release_date' => $item['release_date'] ?? null,
+          'updated_at'  => now(),  // upsert に必要
+          'created_at'  => now(),
+        ];
+      })
+      ->all();
+
+    Movie::upsertMovies($records);
 
     return $this->formatMovieList($json);
   }
