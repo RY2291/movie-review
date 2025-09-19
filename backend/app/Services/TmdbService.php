@@ -65,11 +65,11 @@ class TmdbService
         return [
           'api_id'      => $item['id'], // TMDB の ID を api_id カラムに
           'title'       => $item['title'],
-          'poster_url'  => $item['poster_path']
+          'poster_url'  => $item['poster_path'] ?? ' '
             ? "https://image.tmdb.org/t/p/w500{$item['poster_path']}"
             : null,
           'description' => $item['overview'] ?? null,
-          'release_date' => $item['release_date'] ?? null,
+          'release_date' => $item['release_date'] === '' ? '1991-01-01' : $item['release_date'],
           'updated_at'  => now(),  // upsert に必要
           'created_at'  => now(),
         ];

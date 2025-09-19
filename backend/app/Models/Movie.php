@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Movie extends Model
 {
-    protected array $fillable = [
+    protected $fillable = [
         'api_id',
         'title',
         'poster_url',
