@@ -1,7 +1,7 @@
 "use client"
 
 import LoginLinks from '@/app/LoginLinks'
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, Star, Calendar, Film, ChevronRight, Play } from 'lucide-react';
 
 
@@ -16,6 +16,8 @@ const MovieReviewTop = () => {
     const [latestError, setLatestError] = useState('');
     const [searchedMovies, setSearchedMovies] = useState([]);
     const [searchedMoviesError, setSearchedMoviesError] = useState('');
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchRef = useRef(null);
 
     useEffect(() => {
         const fetchLatestMovies = async () => {
@@ -45,7 +47,10 @@ const MovieReviewTop = () => {
         fetchLatestMovies();
     }, []);
 
+
     const handleSearch = () => {
+        if (!searchKeyword.trim()) return;
+
         const fetchSearchMovie = async () => {
             try {
                 setLoading(true);
@@ -63,16 +68,64 @@ const MovieReviewTop = () => {
 
                 const data = await response.json();
                 setSearchedMovies(data || []);
+                setShowSuggestions(true);
             } catch (error) {
                 console.error('Error fetching search movies:', error);
                 setSearchedMoviesError(error.message);
+                setSearchedMovies([]);
             } finally {
                 setLoading(false);
             }
         }
-        console.log(searchedMovies);
         fetchSearchMovie();
     }
+
+    const handleInputChange = (e) => {
+        const value = e.target.value;
+        setSearchKeyword(value);
+
+        if (!value.trim()) {
+            setShowSuggestions(false);
+            setSearchedMovies([]);
+            return;
+        }
+
+        // リアルタイム検索
+        handleSearch();
+    }
+
+    // サジェスト処理
+    const handleSuggestionClick = (movie) => {
+        setSearchKeyword(movie.title);
+        setShowSuggestions(false);
+        // 選択した映画の詳細処理をここに追加
+        console.log('Selected movie:', movie);
+    }
+
+    const closeSuggestions = () => {
+        setShowSuggestions(false)
+    }
+
+    // 検索結果の範囲外をクリックでサジェストを閉じる
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowSuggestions(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        }
+    })
+
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    }
+
     // ダミーデータ
     const reviewedMovies = [
     ];
@@ -154,22 +207,94 @@ const MovieReviewTop = () => {
                         <h2 className="text-3xl font-bold text-gray-800 mb-2">映画を検索</h2>
                         <p className="text-gray-600">お気に入りの映画を見つけてレビューしよう</p>
                     </div>
-                    <div className="max-w-2xl mx-auto">
+                    <div className="max-w-2xl mx-auto relative" ref={searchRef}>
                         <div className="relative">
                             <input
                                 type="text"
                                 placeholder="映画のタイトルを入力してください..."
                                 value={searchKeyword}
-                                onChange={(e) => setSearchKeyword(e.target.value)}
+                                onChange={handleInputChange}
+                                onKeyPress={handleKeyPress}
                                 className="w-full px-6 py-4 text-lg border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                             />
                             <button
                                 onClick={handleSearch}
+                                disabled={Loading}
                                 className="absolute right-2 top-2 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 transition-colors"
                             >
-                                <Search className="w-6 h-6" />
+                                {Loading ? (
+                                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                    <Search className="w-6 h-6" />
+                                )}
                             </button>
                         </div>
+
+                        {/* サジェスト表示 */}
+                        {showSuggestions && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+                                <div className="flex items-center justify-between p-3 border-b border-gray-100">
+                                    <span className="text-sm text-gray-600 font-medium">
+                                        検索結果 ({searchedMovies.length}件)
+                                    </span>
+                                    <button
+                                        onClick={closeSuggestions}
+                                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                                    >
+                                        {/* <X className="w-4 h-4" /> */}
+                                    </button>
+                                </div>
+
+                                {searchedMoviesError && (
+                                    <div className="p-4 text-red-600 text-sm">
+                                        {searchedMoviesError}
+                                    </div>
+                                )}
+
+                                {searchedMovies.length === 0 && !searchedMoviesError && !Loading && (
+                                    <div className="p-4 text-gray-500 text-sm text-center">
+                                        該当する映画が見つかりませんでした
+                                    </div>
+                                )}
+
+                                {searchedMovies.map((movie, index) => (
+                                    <div
+                                        key={`${movie.id}-${index}`}
+                                        onClick={() => handleSuggestionClick(movie)}
+                                        className="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-b-0 transition-colors"
+                                    >
+                                        {movie.poster_path && (
+                                            <img
+                                                src={movie.poster_path}
+                                                alt={movie.title}
+                                                className="w-12 h-16 object-cover rounded mr-3 flex-shrink-0"
+                                            />
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="font-medium text-gray-900 truncate">
+                                                {movie.title}
+                                            </h4>
+                                            {movie.release_date && (
+                                                <p className="text-sm text-gray-500 mt-1">
+                                                    {movie.release_date}
+                                                </p>
+                                            )}
+                                            {movie.overview && (
+                                                <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                                                    {movie.overview}
+                                                </p>
+                                            )}
+                                        </div>
+                                        {movie.rating && (
+                                            <div className="flex items-center text-sm text-gray-600 ml-2">
+                                                <Star className="w-4 h-4 fill-yellow-400 text-yellow-400 mr-1" />
+                                                {movie.rating}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </section>
 
