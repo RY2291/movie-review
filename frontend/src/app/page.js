@@ -1,6 +1,6 @@
 "use client"
 
-import LoginLinks from '@/app/LoginLinks'
+import Header from 'components/Header'
 import { useState, useEffect, useRef } from 'react';
 import { Search, Star, Calendar, Film, ChevronRight, Play } from 'lucide-react';
 
@@ -208,23 +208,7 @@ const MovieReviewTop = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* ヘッダー */}
-            <header className="bg-gradient-to-r from-blue-600 to-purple-700 text-white shadow-lg">
-                <div className="max-w-7xl mx-auto px-4 py-6">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                            <Film className="w-8 h-8" />
-                            <h1 className="text-2xl font-bold">MovieReview</h1>
-                        </div>
-                        <nav className="hidden md:flex space-x-6">
-                            <a href="#" className="hover:text-blue-200 transition-colors">ホーム</a>
-                            <a href="#" className="hover:text-blue-200 transition-colors">映画</a>
-                            <a href="#" className="hover:text-blue-200 transition-colors">レビュー</a>
-                            <a href="#" className="hover:text-blue-200 transition-colors">マイページ</a>
-                        </nav>
-                    </div>
-                </div>
-            </header>
-
+            <Header />
             {/* メインコンテンツ */}
             <main className="max-w-7xl mx-auto px-4 py-8 space-y-12">
                 {/* 検索セクション */}
