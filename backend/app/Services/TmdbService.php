@@ -32,7 +32,27 @@ class TmdbService
     ];
     $json = $this->request('/movie/now_playing', $params);
 
-    return $this->formatMovieList($json);
+
+    $records = collect($json['results'] ?? [])
+      ->map(function ($item) {
+        // Log::debug($item);
+        return [
+          'api_id'      => $item['id'], // TMDB の ID を api_id カラムに
+          'title'       => $item['title'],
+          'poster_path'  => $item['poster_path'] ?? ' '
+            ? "https://image.tmdb.org/t/p/w500{$item['poster_path']}"
+            : null,
+          'description' => $item['overview'] ?? null,
+          'release_date' => !array_key_exists('release_date', $item) || trim($item['release_date']) == '' ? null : $item['release_date'],
+          'updated_at'  => now(),  // upsert に必要
+          'created_at'  => now(),
+        ];
+      })
+      ->all();
+
+    Movie::upsertMovies($records);
+
+    return $this->formatMovieList($records);
   }
 
   /**
@@ -78,7 +98,7 @@ class TmdbService
 
     Movie::upsertMovies($records);
 
-    return $this->formatMovieList($json);
+    return $this->formatMovieList($records);
   }
 
   private function request(string $path, array $params): array
@@ -117,7 +137,7 @@ class TmdbService
     } else {
       return collect($data)
         ->map(fn($m) => [
-          'id' => $m['id'],
+          'id' => $m['api_id'],
           'title' => $m['title'],
           'poster_path' => array_key_exists('poster_path', $m) ? "https://image.tmdb.org/t/p/w500{$m['poster_path']}" : null,
           'release_date' => array_key_exists('release_date', $m) ? $m['release_date'] : null,
