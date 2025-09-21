@@ -50,6 +50,8 @@ const MovieReviewTop = () => {
 
     // デバウンス付き検索関数
     const debouncedSearch = (searchTerm) => {
+        setSearchedMoviesError('');
+
         if (debounceTimerRef.current) {
             clearTimeout(debounceTimerRef.current);
         }

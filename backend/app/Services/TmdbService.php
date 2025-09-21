@@ -65,7 +65,7 @@ class TmdbService
         return [
           'api_id'      => $item['id'], // TMDB の ID を api_id カラムに
           'title'       => $item['title'],
-          'poster_url'  => $item['poster_path'] ?? ' '
+          'poster_path'  => $item['poster_path'] ?? ' '
             ? "https://image.tmdb.org/t/p/w500{$item['poster_path']}"
             : null,
           'description' => $item['overview'] ?? null,

@@ -9,7 +9,7 @@ class Movie extends Model
     protected $fillable = [
         'api_id',
         'title',
-        'poster_url',
+        'poster_path',
         'description',
         'release_date'
     ];
@@ -27,6 +27,6 @@ class Movie extends Model
      */
     public static function upsertMovies(array $movies): void
     {
-        static::upsert($movies, ['api_id'], ['title', 'poster_url', 'description', 'release_date']);
+        static::upsert($movies, ['api_id'], ['title', 'poster_path', 'description', 'release_date']);
     }
 }
