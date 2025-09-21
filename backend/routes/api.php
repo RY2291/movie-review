@@ -10,3 +10,4 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 
 Route::get('/movies/latest', [MovieController::class, 'latest']);
 Route::get('/movies/search', [MovieController::class, 'search']);
+Route::get('/movies/{id}', [MovieController::class, 'detail']);
