@@ -69,7 +69,7 @@ class TmdbService
             ? "https://image.tmdb.org/t/p/w500{$item['poster_path']}"
             : null,
           'description' => $item['overview'] ?? null,
-          'release_date' => $item['release_date'] === '' ? '1991-01-01' : $item['release_date'],
+          'release_date' => !array_key_exists('release_date', $item) || trim($item['release_date']) == '' ? null : $item['release_date'],
           'updated_at'  => now(),  // upsert に必要
           'created_at'  => now(),
         ];
@@ -103,15 +103,26 @@ class TmdbService
     return $response->json();
   }
 
-  private function formatMovieList(array $json): array
+  private function formatMovieList(array $data): array
   {
-    return collect($json['results'] ?? [])
-      ->map(fn($m) => [
-        'id' => $m['id'],
-        'title' => $m['title'],
-        'poster_path' => $m['poster_path'] ? "https://image.tmdb.org/t/p/w500{$m['poster_path']}" : null,
-        'release_date' => $m['release_date'],
-      ])
-      ->all();
+    if (array_key_exists('results', $data)) {
+      return collect($data['results'] ?? [])
+        ->map(fn($m) => [
+          'id' => $m['id'],
+          'title' => $m['title'],
+          'poster_path' => $m['poster_path'] ? "https://image.tmdb.org/t/p/w500{$m['poster_path']}" : null,
+          'release_date' => array_key_exists('release_date', $m) ? $m['release_date'] : null,
+        ])
+        ->all();
+    } else {
+      return collect($data)
+        ->map(fn($m) => [
+          'id' => $m['id'],
+          'title' => $m['title'],
+          'poster_path' => array_key_exists('poster_path', $m) ? "https://image.tmdb.org/t/p/w500{$m['poster_path']}" : null,
+          'release_date' => array_key_exists('release_date', $m) ? $m['release_date'] : null,
+        ])
+        ->all();
+    }
   }
 }

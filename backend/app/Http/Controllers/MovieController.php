@@ -18,16 +18,20 @@ class MovieController extends Controller
 
     public function search(Request $request)
     {
-        $request->validate(['searchKeyword' => 'required|string']);
-        $movies = $this->tmdb->searchMovies($request->input('searchKeyword'));
+        try {
+            $request->validate(['searchKeyword' => 'required|string']);
+            $movies = $this->tmdb->searchMovies($request->input('searchKeyword'));
 
-        $data = collect($movies ?? [])->map(fn($m) => [
-            'id' => $m['id'] ?? '',
-            'title' => $m['title'] ?? '',
-            'poster_path' => $m['poster_path'] ?? '',
-            'release_date' => $m['release_date'] ?? '',
-        ]);
+            $data = collect($movies ?? [])->map(fn($m) => [
+                'id' => $m['id'] ?? '',
+                'title' => $m['title'] ?? '',
+                'poster_path' => $m['poster_path'] ?? '',
+                'release_date' => $m['release_date'] ?? '',
+            ]);
 
-        return response()->json($data);
+            return response()->json($data);
+        } catch (\Throwable $th) {
+            return response()->json(['error' => $th->getMessage()], 500);
+        }
     }
 }

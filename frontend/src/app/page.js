@@ -18,6 +18,7 @@ const MovieReviewTop = () => {
     const [searchedMoviesError, setSearchedMoviesError] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchRef = useRef(null);
+    const debounceTimerRef = useRef(null);
 
     useEffect(() => {
         const fetchLatestMovies = async () => {
@@ -47,51 +48,71 @@ const MovieReviewTop = () => {
         fetchLatestMovies();
     }, []);
 
+    // デバウンス付き検索関数
+    const debouncedSearch = (searchTerm) => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+
+        // 新しいタイマーを設定(1500ms後に検索実行)
+        debounceTimerRef.current = setTimeout(() => {
+            if (searchTerm.trim()) {
+                performSearch(searchTerm);
+            }
+        }, 1500);
+    }
+
+    const performSearch = async (searchTerm = searchKeyword) => {
+        if (!searchTerm.trim()) return;
+
+        try {
+            setLoading(true);
+
+            const response = await fetch(
+                `http://localhost:8080/api/movies/search?searchKeyword=${encodeURIComponent(searchKeyword)}`,
+                {
+                    credentials: 'include', // これがないとLaravel側でCORSエラー発生する
+                }
+            );
+
+            if (response.status !== 200) {
+                throw new Error('検索に失敗しました');
+            }
+
+            const data = await response.json();
+            setSearchedMovies(data || []);
+            setShowSuggestions(true);
+        } catch (error) {
+            console.error('Error fetching search movies:', error);
+            setSearchedMoviesError(error.message);
+            setSearchedMovies([]);
+        } finally {
+            setLoading(false);
+        }
+    }
 
     const handleSearch = () => {
-        if (!searchKeyword.trim()) return;
-
-        const fetchSearchMovie = async () => {
-            try {
-                setLoading(true);
-
-                const response = await fetch(
-                    `http://localhost:8080/api/movies/search?searchKeyword=${encodeURIComponent(searchKeyword)}`,
-                    {
-                        credentials: 'include', // これがないとLaravel側でCORSエラー発生する
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error('検索に失敗しました');
-                }
-
-                const data = await response.json();
-                setSearchedMovies(data || []);
-                setShowSuggestions(true);
-            } catch (error) {
-                console.error('Error fetching search movies:', error);
-                setSearchedMoviesError(error.message);
-                setSearchedMovies([]);
-            } finally {
-                setLoading(false);
-            }
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
         }
-        fetchSearchMovie();
+        performSearch();
     }
 
     const handleInputChange = (e) => {
         const value = e.target.value;
         setSearchKeyword(value);
 
+        // 入力が空の場合はサジェストを非表示にしてタイマーをクリア
         if (!value.trim()) {
             setShowSuggestions(false);
             setSearchedMovies([]);
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
             return;
         }
 
-        // リアルタイム検索
-        handleSearch();
+        debouncedSearch(value);
     }
 
     // サジェスト処理
@@ -117,8 +138,11 @@ const MovieReviewTop = () => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
+            if (debounceTimerRef.current) {
+                clearTimeout(debounceTimerRef.current);
+            }
         }
-    })
+    }, []);
 
     const handleKeyPress = (e) => {
         if (e.key === 'Enter') {
