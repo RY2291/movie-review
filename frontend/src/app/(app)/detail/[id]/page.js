@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Star, Calendar, Clock, ArrowLeft, Heart, Share, Play } from 'lucide-react';
+import { Star, Calendar, Clock, ArrowLeft, Heart, Share, Play, X, Edit } from 'lucide-react';
 import Header from '@/components/Header';
 
 const MovieDetail = () => {
@@ -11,6 +11,14 @@ const MovieDetail = () => {
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [user, setUser] = useState(null);
+  const [userReview, setUserReview] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 0,
+    comment: ''
+  });
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   // クエリパラメータから映画IDを取得
   const movieId = params.id;
@@ -22,39 +30,189 @@ const MovieDetail = () => {
       return;
     }
 
-    const fetchMovieDetail = async () => {
-      try {
-        setLoading(true);
-        setError('');
-
-        // APIから映画詳細を取得
-        const response = await fetch(
-          `http://localhost:8080/api/movies/${movieId}`,
-          {
-            credentials: 'include',
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error('映画詳細の取得に失敗しました');
-        }
-
-        const data = await response.json();
-        setMovie(data.data);;
-      } catch (error) {
-        console.error('Error fetching movie detail:', error);
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
+    const fetchData = async () => {
+      await Promise.all([
+        fetchMovieDetail(),
+        fetchUserData(),
+        fetchUserReview()
+      ]);
     };
 
-    fetchMovieDetail();
+    fetchData();
   }, [movieId]);
+
+  const fetchMovieDetail = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // APIから映画詳細を取得
+      const response = await fetch(
+        `http://localhost:8080/api/movies/${movieId}`,
+        {
+          credentials: 'include',
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('映画詳細の取得に失敗しました');
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        setMovie(result.data);
+      } else if (result.error) {
+        throw new Error(result.error);
+      } else {
+        setMovie(result);
+      }
+    } catch (error) {
+      console.error('Error fetching movie detail:', error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUserData = async () => {
+    try {
+      const response = await fetch('http://localhost:8080/api/user', {
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+      }
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+      setUser(null);
+    }
+  };
+
+  const fetchUserReview = async () => {
+    if (!user) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:8080/api/reviews/user/${movieId}`,
+        {
+          credentials: 'include',
+        }
+      );
+
+      if (response.ok) {
+        const reviewData = await response.json();
+        if (reviewData.success && reviewData.data) {
+          setUserReview(reviewData.data);
+          setReviewForm({
+            rating: reviewData.data.rating,
+            comment: reviewData.data.comment
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user review:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
 
   const handleBack = () => {
     router.back();
   };
+
+  const handleReviewAction = () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
+    // ログイン済みの場合はモーダルを表示
+    setShowReviewModal(true);
+  }
+
+  const handleCloseModal = () => {
+    setShowReviewModal(false);
+    // フォームをリセット（編集の場合は元の値に戻す）
+    if (userReview) {
+      setReviewForm({
+        rating: userReview.rating,
+        comment: userReview.comment
+      });
+    } else {
+      setReviewForm({
+        rating: 0,
+        comment: ''
+      });
+    }
+  }
+
+  const handleRatingClick = (rating) => {
+    setReviewForm(prev => ({ ...prev, rating }));
+  }
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault();
+
+    if (reviewForm.rating === 0) {
+      alert('評価を選択してください');
+      return;
+    }
+
+    setReviewSubmitting(true);
+    try {
+      const url = userReview
+        ? `http://localhost:8080/api/reviews/${userReview.id}`
+        : 'http://localhost:8080/api/reviews';
+
+      const method = 'POST';
+
+      const response = fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          movie_id: movieId,
+          rating: reviewForm.rating,
+          comment: reviewForm.comment
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('レビューの保存に失敗しました');
+      }
+
+      const result = await response.josn();
+
+      if (result.success) {
+        setUserReview(result.data);
+        setShowReviewModal(false);
+        alert(userReview ? 'レビューを更新しました' : 'レビューを投稿しました');
+      } else {
+        throw new Error(result.error || 'レビューの保存に失敗しました');
+      }
+    } catch (error) {
+      console.error('Error submitting review:', error);
+      alert(error.message);
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  const getReviewButtonText = () => {
+    if (!user) return 'ログインしてレビューを書く';
+    return userReview ? 'レビューを編集する' : 'レビューを書く';
+  }
+
+  const getReviewButtonIcon = () => {
+    if (!user) return <Play className="w-5 h-5 mr-2" />;
+    return userReview ? <Edit className="w-5 h-5 mr-2" /> : <Star className="w-5 h-5 mr-2" />;
+  }
 
   if (loading) {
     return (
@@ -184,8 +342,15 @@ const MovieDetail = () => {
                       <Play className="w-5 h-5 mr-2" />
                       予告編を見る
                     </button>
-                    <button className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
-                      レビューを書く
+                    <button
+                      onClick={handleReviewAction}
+                      className={`px-6 py-3 rounded-lg transition-colors flex items-center ${user
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-gray-600 text-white hover:bg-gray-700'
+                        }`}
+                    >
+                      {getReviewButtonIcon()}
+                      {getReviewButtonText()}
                     </button>
                   </div>
                 </div>
@@ -248,6 +413,115 @@ const MovieDetail = () => {
           </div>
         )}
       </main>
+
+      {/* レビューモーダル */}
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">
+                  {userReview ? 'レビューを編集' : 'レビューを書く'}
+                </h2>
+                <button
+                  onClick={handleCloseModal}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {movie && (
+                <div className="flex items-center mb-6 p-4 bg-gray-50 rounded-lg">
+                  <img
+                    src={movie.poster_path}
+                    alt={movie.title}
+                    className="w-16 h-24 object-cover rounded mr-4"
+                  />
+                  <div>
+                    <h3 className="font-semibold text-lg">{movie.title}</h3>
+                    {movie.release_date && (
+                      <p className="text-gray-600 text-sm">{movie.release_date}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitReview}>
+                {/* 評価 */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    評価 <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((rating) => (
+                      <button
+                        key={rating}
+                        type="button"
+                        onClick={() => handleRatingClick(rating)}
+                        className="focus:outline-none"
+                      >
+                        <Star
+                          className={`w-8 h-8 transition-colors ${rating <= reviewForm.rating
+                            ? 'fill-yellow-400 text-yellow-400'
+                            : 'text-gray-300 hover:text-yellow-300'
+                            }`}
+                        />
+                      </button>
+                    ))}
+                    <span className="ml-2 text-sm text-gray-600">
+                      {reviewForm.rating > 0 ? `${reviewForm.rating}/5` : '評価してください'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* コメント */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    コメント
+                  </label>
+                  <textarea
+                    value={reviewForm.comment}
+                    onChange={(e) => setReviewForm(prev => ({ ...prev, comment: e.target.value }))}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    placeholder="映画の感想を書いてください..."
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {reviewForm.comment.length}/500文字
+                  </p>
+                </div>
+
+                {/* ボタン */}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    disabled={reviewSubmitting}
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={reviewSubmitting || reviewForm.rating === 0}
+                    className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {reviewSubmitting ? (
+                      <span className="flex items-center justify-center">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        {userReview ? '更新中...' : '投稿中...'}
+                      </span>
+                    ) : (
+                      userReview ? '更新する' : '投稿する'
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
