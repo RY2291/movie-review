@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Movie;
 use Illuminate\Http\Request;
 use App\Services\TmdbService;
+use Illuminate\Support\Facades\Log;
 
 class MovieController extends Controller
 {
@@ -53,7 +54,7 @@ class MovieController extends Controller
                 'data' => $movie
             ], 200);
         } catch (\Exception $e) {
-            \Log::error('Movie detail fetch error: ' . $e->getMessage());
+            Log::error('Movie detail fetch error: ' . $e->getMessage());
 
             return response()->json([
                 'error' => 'データの取得に失敗しました',

@@ -2,7 +2,8 @@
 
 import Header from 'components/Header'
 import { useState, useEffect, useRef } from 'react';
-import { Search, Star, Calendar, Film, ChevronRight, Play } from 'lucide-react';
+import { Search, Star, Calendar, ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 
 // export const metadata = {
@@ -10,6 +11,7 @@ import { Search, Star, Calendar, Film, ChevronRight, Play } from 'lucide-react';
 // }
 
 const MovieReviewTop = () => {
+    const router = useRouter();
     const [searchKeyword, setSearchKeyword] = useState('');
     const [latestMovies, setLatestMovies] = useState([]);
     const [Loading, setLoading] = useState(true);
@@ -121,8 +123,8 @@ const MovieReviewTop = () => {
     const handleSuggestionClick = (movie) => {
         setSearchKeyword(movie.title);
         setShowSuggestions(false);
-        // 選択した映画の詳細処理をここに追加
-        console.log('Selected movie:', movie);
+
+        router.push(`/detail/${movie.id}`);
     }
 
     const closeSuggestions = () => {
