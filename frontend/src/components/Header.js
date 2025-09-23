@@ -1,9 +1,41 @@
+'use client';
+
 import { Film } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/auth';
+import { useRouter } from 'next/navigation';
+import Cookies from 'js-cookie';
 
 const Header = () => {
   const { user } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async (e) => {
+    e.preventDefault();
+
+    await fetch('http://localhost:8080/sanctum/csrf-cookie', {
+      credentials: 'include'
+    });
+
+    const xsrfToken = Cookies.get('XSRF-TOKEN');
+
+    const response = await fetch('http://localhost:8080/logout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-XSRF-TOKEN': xsrfToken
+      },
+      credentials: 'include'
+    });
+
+    if (response.ok) {
+      // await router.push('/')
+      // ルートページでログアウトするとログアウトしたことがわからないので、直接遷移
+      window.location.href = '/';
+    } else {
+      console.error('Logout failed', response.status);
+    }
+  }
 
   return (
     <header className="bg-gradient-to-r from-blue-600 to-purple-700 text-white shadow-lg">
@@ -18,7 +50,10 @@ const Header = () => {
 
             {user ? (
               // ログイン済み 
-              <Link href="#" className="hover:text-blue-200 transition-colors">マイページ</Link>
+              <>
+                <Link href="#" className="hover:text-blue-200 transition-colors">マイページ</Link>
+                <button onClick={handleLogout} className="hover:text-blue-200 transition-colors">ログアウト</button>
+              </>
             ) : (
               // 未ログイン
               <>
