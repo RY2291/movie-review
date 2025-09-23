@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Movie;
 use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -94,6 +95,17 @@ class ReviewController extends Controller
         $reviews = $query->get();
 
         Log::debug('$reviews', [$reviews]);
+        return response()->json(['success' => true, 'data' => $reviews]);
+    }
+
+    public function getAllReviewed($movieApiId)
+    {
+
+        $movieId = Movie::where('api_id', $movieApiId)->value('id');
+        $reviews = Review::where('movie_id', $movieId)
+            ->where('is_deleted', 0)
+            ->get();
+
         return response()->json(['success' => true, 'data' => $reviews]);
     }
 }

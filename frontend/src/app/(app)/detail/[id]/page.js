@@ -19,6 +19,7 @@ const MovieDetail = () => {
     comment: ''
   });
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [allReviews, setAllReviews] = useState([]);
 
   // クエリパラメータから映画IDを取得
   const movieApiId = params.id;
@@ -34,7 +35,8 @@ const MovieDetail = () => {
       await Promise.all([
         fetchMovieDetail(),
         fetchUserData(),
-        fetchUserReview()
+        fetchUserReview(),
+        fetchAllReviews()
       ]);
     };
 
@@ -119,6 +121,20 @@ const MovieDetail = () => {
     }
   }
 
+  const fetchAllReviews = async () => {
+    try {
+      const res = await fetch(`http://localhost:8080/api/reviews/${movieApiId}`, {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('レビュー一覧の取得に失敗しました');
+      const data = await res.json();
+      console.log(111);
+      console.log(data);
+      if (data.success) setAllReviews(data.data);
+    } catch (err) {
+      console.error('Error fetching all reviews:', err);
+    }
+  };
 
   const handleBack = () => {
     router.back();
@@ -362,34 +378,6 @@ const MovieDetail = () => {
             {/* 追加情報セクション */}
             <div className="p-8 border-t bg-gray-50">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {/* キャスト情報（サンプル） */}
-                {movie.cast && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">主要キャスト</h3>
-                    <div className="space-y-2">
-                      {movie.cast.slice(0, 5).map((actor, index) => (
-                        <div key={index} className="text-sm text-gray-700">
-                          {actor.name}
-                          {actor.character && (
-                            <span className="text-gray-500 ml-2">as {actor.character}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* スタッフ情報（サンプル） */}
-                {movie.director && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">スタッフ</h3>
-                    <div className="space-y-2 text-sm text-gray-700">
-                      <div>監督: {movie.director}</div>
-                      {movie.producer && <div>プロデューサー: {movie.producer}</div>}
-                      {movie.screenplay && <div>脚本: {movie.screenplay}</div>}
-                    </div>
-                  </div>
-                )}
 
                 {/* その他の情報 */}
                 <div>
@@ -402,6 +390,37 @@ const MovieDetail = () => {
                 </div>
               </div>
             </div>
+            <div className="p-8 border-t bg-gray-50">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">みんなのレビュー</h3>
+
+                  {allReviews.length === 0 && (
+                    <p className="text-gray-500">まだレビューがありません</p>
+                  )}
+
+                  <ul className="space-y-4">
+                    {allReviews.map((r) => (
+                      <li key={r.id} className="p-4 bg-white rounded shadow">
+                        <div className="flex items-center mb-2">
+                          {[...Array(r.rating)].map((_, i) => (
+                            <Star key={i} className="w-4 h-4 text-yellow-400 fill-yellow-400 mr-1" />
+                          ))}
+                          <span className="ml-2 text-sm text-gray-600">
+                            {r.user?.name ?? '匿名'}
+                          </span>
+                        </div>
+                        <p className="text-gray-700 whitespace-pre-line">{r.comment}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {new Date(r.created_at).toLocaleDateString('ja-JP')}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+
           </div>
         ) : (
           <div className="text-center py-12">
