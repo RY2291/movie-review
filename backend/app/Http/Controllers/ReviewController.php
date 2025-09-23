@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class ReviewController extends Controller
 {
@@ -59,5 +61,37 @@ class ReviewController extends Controller
         $review->update();
 
         return response()->json(['success' => true]);
+    }
+
+    public function getReviewed()
+    {
+        $isLogin = Auth::check();
+
+        $query = Review::join('movies', 'reviews.movie_id', '=', 'movies.id')
+            ->where('is_deleted', 0)
+            ->groupBy(
+                'reviews.movie_id',
+                'movies.id',
+                'movies.title',
+                'movies.poster_path',
+                'movies.release_date'
+            )
+            ->select(
+                'movies.id',
+                'movies.title',
+                'movies.poster_path',
+                'movies.release_date',
+                DB::raw('Floor(AVG(reviews.rating)) as rating')
+            );
+
+        if ($isLogin) {
+            $userId = auth()->id();
+            $query->where('user_id', $userId);
+        }
+
+        $reviews = $query->get();
+
+        Log::debug('$reviews', [$reviews]);
+        return response()->json(['success' => true, 'data' => $reviews]);
     }
 }

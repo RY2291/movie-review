@@ -4,6 +4,7 @@ import Header from 'components/Header'
 import { useState, useEffect, useRef } from 'react';
 import { Search, Star, Calendar, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/hooks/auth';
 
 
 // export const metadata = {
@@ -21,6 +22,8 @@ const MovieReviewTop = () => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchRef = useRef(null);
     const debounceTimerRef = useRef(null);
+    const [reviewedMovies, setReviewedMovies] = useState([]);
+    const { user } = useAuth();
 
     useEffect(() => {
         const fetchLatestMovies = async () => {
@@ -47,7 +50,34 @@ const MovieReviewTop = () => {
                 setLoading(false);
             }
         }
+
+        const fetchReviewedMovies = async () => {
+            try {
+                setLoading(true);
+
+                const response = await fetch('http://localhost:8080/api/reviews/reviewed', {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    if (response.status === 409) {
+                        setLatestMovies([]);
+                        return;
+                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                setReviewedMovies(data.data || []);
+            } catch (error) {
+                console.error('Error fetching latest movies:', error);
+                setLatestError(error.message);
+            } finally {
+                setLoading(false);
+            }
+        }
         fetchLatestMovies();
+        fetchReviewedMovies();
     }, []);
 
     // デバウンス付き検索関数
@@ -154,12 +184,9 @@ const MovieReviewTop = () => {
         }
     }
 
-    // ダミーデータ
-    const reviewedMovies = [
-    ];
 
-    const MovieCard = ({ movie, isReviewed = false }) => (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 min-w-0 flex-shrink-0 w-64">
+    const MovieCard = ({ movie, isReviewed = false, isUser }) => (
+        <div div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 min-w-0 flex-shrink-0 w-64" >
             <div className="relative">
                 <img
                     src={movie.poster_path}
@@ -181,17 +208,17 @@ const MovieReviewTop = () => {
                 <div className="flex items-center text-gray-600 mb-2">
                     <Calendar className="w-4 h-4 mr-1" />
                     <span className="text-sm">
-                        {isReviewed ? movie.reviewDate : movie.release_date}
+                        {movie.release_date}
                     </span>
                 </div>
-                {isReviewed && (
+                {isReviewed && isUser && (
                     <div className="flex items-center mb-2">
                         <span className="text-sm text-gray-600 mr-2">あなたの評価:</span>
                         <div className="flex">
                             {[...Array(5)].map((_, i) => (
                                 <Star
                                     key={i}
-                                    className={`w-4 h-4 ${i < movie.userRating
+                                    className={`w-4 h-4 ${i < movie.rating
                                         ? 'fill-yellow-400 text-yellow-400'
                                         : 'text-gray-300'
                                         }`}
@@ -204,7 +231,7 @@ const MovieReviewTop = () => {
                     {isReviewed ? movie.reviewSnippet : movie.overview}
                 </p>
             </div>
-        </div>
+        </div >
     );
 
     return (
@@ -365,7 +392,7 @@ const MovieReviewTop = () => {
                     </div>
                     <div className="flex space-x-6 overflow-x-auto pb-4 scrollbar-hide">
                         {reviewedMovies.map((movie) => (
-                            <MovieCard key={movie.id} movie={movie} isReviewed={true} />
+                            <MovieCard key={movie.id} movie={movie} isReviewed={true} isUser={Boolean(user)} />
                         ))}
                     </div>
                 </section>
