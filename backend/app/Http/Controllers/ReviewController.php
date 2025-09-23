@@ -72,12 +72,14 @@ class ReviewController extends Controller
             ->groupBy(
                 'reviews.movie_id',
                 'movies.id',
+                'movies.api_id',
                 'movies.title',
                 'movies.poster_path',
                 'movies.release_date'
             )
             ->select(
                 'movies.id',
+                'movies.api_id',
                 'movies.title',
                 'movies.poster_path',
                 'movies.release_date',

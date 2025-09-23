@@ -42,7 +42,15 @@ const MovieReviewTop = () => {
                 }
 
                 const data = await response.json();
-                setLatestMovies(data || [])
+
+                // 詳細ページに遷移するときのキーが「レビュー済み」では、api_idのため、合わせるようにキーを置換
+                const converted = data.map(item => ({
+                    ...item,
+                    api_id: item.id,
+                    id: undefined
+                }));
+
+                setLatestMovies(converted || [])
             } catch (error) {
                 console.error('Error fetching latest movies:', error);
                 setLatestError(error.message);
@@ -184,9 +192,12 @@ const MovieReviewTop = () => {
         }
     }
 
+    const handleMoveDetail = (api_id) => {
+        router.push(`/detail/${api_id}`);
+    }
 
     const MovieCard = ({ movie, isReviewed = false, isUser }) => (
-        <div div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 min-w-0 flex-shrink-0 w-64" >
+        <div onClick={() => handleMoveDetail(movie.api_id)} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300 min-w-0 flex-shrink-0 w-64" >
             <div className="relative">
                 <img
                     src={movie.poster_path}
@@ -366,7 +377,7 @@ const MovieReviewTop = () => {
                     {latestMovies && latestMovies.length > 0 && (
                         <div className="flex space-x-6 overflow-x-auto pb-4">
                             {latestMovies.map((movie) => (
-                                <MovieCard key={movie.id} movie={movie} />
+                                <MovieCard key={movie.api_id} movie={movie} />
                             ))}
                         </div>
                     )}
