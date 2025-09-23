@@ -21,10 +21,10 @@ const MovieDetail = () => {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   // クエリパラメータから映画IDを取得
-  const movieId = params.id;
+  const movieApiId = params.id;
 
   useEffect(() => {
-    if (!movieId) {
+    if (!movieApiId) {
       setError('映画IDが見つかりません');
       setLoading(false);
       return;
@@ -39,7 +39,7 @@ const MovieDetail = () => {
     };
 
     fetchData();
-  }, [movieId]);
+  }, [movieApiId]);
 
   const fetchMovieDetail = async () => {
     try {
@@ -48,7 +48,7 @@ const MovieDetail = () => {
 
       // APIから映画詳細を取得
       const response = await fetch(
-        `http://localhost:8080/api/movies/${movieId}`,
+        `http://localhost:8080/api/movies/${movieApiId}`,
         {
           credentials: 'include',
         }
@@ -164,8 +164,9 @@ const MovieDetail = () => {
 
     setReviewSubmitting(true);
     try {
+      const movie_id = movie.id;
       const url = userReview
-        ? `http://localhost:8080/api/reviews/${userReview.id}`
+        ? 'http://localhost:8080/api/reviews/update'
         : 'http://localhost:8080/api/reviews';
 
       const method = 'POST';
@@ -177,17 +178,18 @@ const MovieDetail = () => {
         },
         credentials: 'include',
         body: JSON.stringify({
-          movie_id: movieId,
+          movie_id: movie_id,
           rating: reviewForm.rating,
-          comment: reviewForm.comment
+          comment: reviewForm.comment,
+          review_id: userReview.id ?? null
         }),
       });
 
-      if (!response.ok) {
+      if (!(await response).ok) {
         throw new Error('レビューの保存に失敗しました');
       }
 
-      const result = await response.josn();
+      const result = await (await response).json();
 
       if (result.success) {
         setUserReview(result.data);

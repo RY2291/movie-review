@@ -37,10 +37,10 @@ class MovieController extends Controller
         }
     }
 
-    public function detail(int $id)
+    public function detail(int $apiId)
     {
         try {
-            $movie = Movie::where('api_id', $id)->first();
+            $movie = Movie::where('api_id', $apiId)->first();
 
             if (!$movie) {
                 return response()->json([
