@@ -11,7 +11,7 @@ const MovieDetail = () => {
   const [movie, setMovie] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState([]);
   const [userReview, setUserReview] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewForm, setReviewForm] = useState({
@@ -85,7 +85,9 @@ const MovieDetail = () => {
 
       if (response.ok) {
         const userData = await response.json();
+        console.log(userData);
         setUser(userData);
+        console.log(user);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -94,11 +96,14 @@ const MovieDetail = () => {
   };
 
   const fetchUserReview = async () => {
-    if (!user) return;
+    // console.log(4444);
+    // console.log(user);
+    // if (!user.success) return;
+    // console.log(5555);
 
     try {
       const response = await fetch(
-        `http://localhost:8080/api/reviews/user/${movieId}`,
+        `http://localhost:8080/api/reviews/user/${movieApiId}`,
         {
           credentials: 'include',
         }
@@ -128,8 +133,7 @@ const MovieDetail = () => {
       });
       if (!res.ok) throw new Error('レビュー一覧の取得に失敗しました');
       const data = await res.json();
-      console.log(111);
-      console.log(data);
+
       if (data.success) setAllReviews(data.data);
     } catch (err) {
       console.error('Error fetching all reviews:', err);

@@ -11,9 +11,10 @@ use Illuminate\Support\Facades\Auth;
 
 class ReviewController extends Controller
 {
-    public function getUserReview($movieId)
+    public function getUserReview($movieApiId)
     {
-        $review = Review::where('user_id', auth()->id)
+        $movieId = Movie::where('api_id', $movieApiId)->value('id');
+        $review = Review::where('user_id', auth()->id())
             ->where('movie_id', $movieId)
             ->first();
 
@@ -86,7 +87,6 @@ class ReviewController extends Controller
                 'movies.release_date',
                 DB::raw('Floor(AVG(reviews.rating)) as rating')
             );
-
         if ($isLogin) {
             $userId = auth()->id();
             $query->where('user_id', $userId);

@@ -66,7 +66,7 @@ const MovieReviewTop = () => {
                 const response = await fetch('http://localhost:8080/api/reviews/reviewed', {
                     credentials: 'include'
                 });
-
+                console.log(response);
                 if (!response.ok) {
                     if (response.status === 409) {
                         setLatestMovies([]);
